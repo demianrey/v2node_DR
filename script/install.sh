@@ -398,7 +398,6 @@ EOF
     echo "v2node uninstall    - Desinstalar v2node"
     echo "v2node version      - Ver version de v2node"
     echo "------------------------------------------"
-    curl -fsS --max-time 10 "https://api.v-50.me/counter" || true
 
     if [[ $first_install == true ]]; then
         read -rp "Se detecto que es tu primera instalacion de v2node, deseas generar /etc/v2node/config.json automaticamente? (y/n): " if_generate
