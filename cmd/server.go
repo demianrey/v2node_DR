@@ -126,14 +126,14 @@ func serverHandle(_ *cobra.Command, _ []string) {
 	for {
 		select {
 		case <-osSignals:
-			log.Info("收到退出信号，正在关闭程序...")
+			log.Info("Senal de salida recibida, cerrando programa...")
 			os.Exit(0)
 		case <-reloadCh:
-			log.Info("收到重启信号，正在重新加载配置...")
+			log.Info("Senal de reinicio recibida, recargando configuracion...")
 			if err := reload(config, &nodes, &v2core); err != nil {
-				log.WithField("err", err).Panic("重启失败")
+				log.WithField("err", err).Panic("Reinicio fallido")
 			}
-			log.Info("重启成功")
+			log.Info("Reinicio exitoso")
 		}
 	}
 }
@@ -173,7 +173,7 @@ func reload(config string, nodes **node.Node, v2core **core.V2Core) error {
 		if err != nil {
 			log.WithField("err", err).Error("Open log file failed, using stdout instead")
 		} else {
-			// 关闭旧的日志文件（如果是文件）
+			// Cerrar el archivo de log antiguo (si es un archivo)
 			if oldWriter, ok := log.StandardLogger().Out.(*os.File); ok && oldWriter != os.Stdout && oldWriter != os.Stderr {
 				oldWriter.Close()
 			}

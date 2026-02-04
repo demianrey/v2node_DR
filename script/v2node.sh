@@ -7,10 +7,10 @@ plain='\033[0m'
 
 cur_dir=$(pwd)
 
-# check root
-[[ $EUID -ne 0 ]] && echo -e "${red}错误：${plain} 必须使用root用户运行此脚本！\n" && exit 1
+# verificar root
+[[ $EUID -ne 0 ]] && echo -e "${red}Error:${plain} Debes ejecutar este script como usuario root!\n" && exit 1
 
-# check os
+# verificar sistema operativo
 if [[ -f /etc/redhat-release ]]; then
     release="centos"
 elif cat /etc/issue | grep -Eqi "alpine"; then
@@ -30,7 +30,7 @@ elif cat /proc/version | grep -Eqi "centos|red hat|redhat|rocky|alma|oracle linu
 elif cat /proc/version | grep -Eqi "arch"; then
     release="arch"
 else
-    echo -e "${red}未检测到系统版本，请联系脚本作者！${plain}\n" && exit 1
+    echo -e "${red}No se detecto la version del sistema, por favor contacta al autor del script!${plain}\n" && exit 1
 fi
 
 arch=$(uname -m)
@@ -43,15 +43,15 @@ elif [[ $arch == "s390x" ]]; then
     arch="s390x"
 else
     arch="64"
-    echo -e "${red}检测架构失败，使用默认架构: ${arch}${plain}"
+    echo -e "${red}Fallo al detectar la arquitectura, usando arquitectura por defecto: ${arch}${plain}"
 fi
 
 if [ "$(getconf WORD_BIT)" != '32' ] && [ "$(getconf LONG_BIT)" != '64' ] ; then
-    echo "本软件不支持 32 位系统(x86)，请使用 64 位系统(x86_64)，如果检测有误，请联系作者"
+    echo "Este software no soporta sistemas de 32 bits (x86), por favor usa un sistema de 64 bits (x86_64). Si la deteccion es incorrecta, contacta al autor"
     exit 2
 fi
 
-# os version
+# version del sistema operativo
 if [[ -f /etc/os-release ]]; then
     os_version=$(awk -F'[= ."]' '/VERSION_ID/{print $3}' /etc/os-release)
 fi
@@ -61,24 +61,24 @@ fi
 
 if [[ x"${release}" == x"centos" ]]; then
     if [[ ${os_version} -le 6 ]]; then
-        echo -e "${red}请使用 CentOS 7 或更高版本的系统！${plain}\n" && exit 1
+        echo -e "${red}Por favor usa CentOS 7 o una version superior!${plain}\n" && exit 1
     fi
     if [[ ${os_version} -eq 7 ]]; then
-        echo -e "${red}注意： CentOS 7 无法使用hysteria1/2协议！${plain}\n"
+        echo -e "${red}Nota: CentOS 7 no puede usar el protocolo hysteria1/2!${plain}\n"
     fi
 elif [[ x"${release}" == x"ubuntu" ]]; then
     if [[ ${os_version} -lt 16 ]]; then
-        echo -e "${red}请使用 Ubuntu 16 或更高版本的系统！${plain}\n" && exit 1
+        echo -e "${red}Por favor usa Ubuntu 16 o una version superior!${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"debian" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
-        echo -e "${red}请使用 Debian 8 或更高版本的系统！${plain}\n" && exit 1
+        echo -e "${red}Por favor usa Debian 8 o una version superior!${plain}\n" && exit 1
     fi
 fi
 
 confirm() {
     if [[ $# > 1 ]]; then
-        echo && read -rp "$1 [默认$2]: " temp
+        echo && read -rp "$1 [por defecto $2]: " temp
         if [[ x"${temp}" == x"" ]]; then
             temp=$2
         fi
@@ -93,7 +93,7 @@ confirm() {
 }
 
 confirm_restart() {
-    confirm "是否重启v2node" "y"
+    confirm "Deseas reiniciar v2node" "y"
     if [[ $? == 0 ]]; then
         restart
     else
@@ -102,12 +102,12 @@ confirm_restart() {
 }
 
 before_show_menu() {
-    echo && echo -n -e "${yellow}按回车返回主菜单: ${plain}" && read temp
+    echo && echo -n -e "${yellow}Presiona Enter para volver al menu principal: ${plain}" && read temp
     show_menu
 }
 
 install() {
-    bash <(curl -Ls https://raw.githubusercontent.com/wyx2685/v2node/master/script/install.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/demianrey/v2node_DR/mod/script/install.sh)
     if [[ $? == 0 ]]; then
         if [[ $# == 0 ]]; then
             start
@@ -119,13 +119,13 @@ install() {
 
 update() {
     if [[ $# == 0 ]]; then
-        echo && echo -n -e "输入指定版本(默认最新版): " && read version
+        echo && echo -n -e "Ingresa la version especifica (por defecto ultima): " && read version
     else
         version=$2
     fi
-    bash <(curl -Ls https://raw.githubusercontent.com/wyx2685/v2node/master/script/install.sh) $version
+    bash <(curl -Ls https://raw.githubusercontent.com/demianrey/v2node_DR/mod/script/install.sh) $version
     if [[ $? == 0 ]]; then
-        echo -e "${green}更新完成，已自动重启 v2node，请使用 v2node log 查看运行日志${plain}"
+        echo -e "${green}Actualizacion completada, v2node se ha reiniciado automaticamente. Usa v2node log para ver los registros${plain}"
         exit
     fi
 
@@ -135,30 +135,30 @@ update() {
 }
 
 config() {
-    echo "v2node在修改配置后会自动尝试重启"
+    echo "v2node intentara reiniciarse automaticamente despues de modificar la configuracion"
     vi /etc/v2node/config.json
     sleep 2
     restart
     check_status
     case $? in
         0)
-            echo -e "v2node状态: ${green}已运行${plain}"
+            echo -e "Estado de v2node: ${green}Ejecutando${plain}"
             ;;
         1)
-            echo -e "检测到您未启动v2node或v2node自动重启失败，是否查看日志？[Y/n]" && echo
-            read -e -rp "(默认: y):" yn
+            echo -e "Se detecto que v2node no esta iniciado o fallo el reinicio automatico. Deseas ver los registros? [Y/n]" && echo
+            read -e -rp "(por defecto: y):" yn
             [[ -z ${yn} ]] && yn="y"
             if [[ ${yn} == [Yy] ]]; then
                show_log
             fi
             ;;
         2)
-            echo -e "v2node状态: ${red}未安装${plain}"
+            echo -e "Estado de v2node: ${red}No instalado${plain}"
     esac
 }
 
 uninstall() {
-    confirm "确定要卸载 v2node 吗?" "n"
+    confirm "Estas seguro de que deseas desinstalar v2node?" "n"
     if [[ $? != 0 ]]; then
         if [[ $# == 0 ]]; then
             show_menu
@@ -180,7 +180,7 @@ uninstall() {
     rm /usr/local/v2node/ -rf
 
     echo ""
-    echo -e "卸载成功，如果你想删除此脚本，则退出脚本后运行 ${green}rm /usr/bin/v2node -f${plain} 进行删除"
+    echo -e "Desinstalacion exitosa. Si deseas eliminar este script, sal del script y ejecuta ${green}rm /usr/bin/v2node -f${plain}"
     echo ""
 
     if [[ $# == 0 ]]; then
@@ -192,7 +192,7 @@ start() {
     check_status
     if [[ $? == 0 ]]; then
         echo ""
-        echo -e "${green}v2node已运行，无需再次启动，如需重启请选择重启${plain}"
+        echo -e "${green}v2node ya esta ejecutandose, no es necesario iniciarlo de nuevo. Si deseas reiniciar, selecciona reiniciar${plain}"
     else
         if [[ x"${release}" == x"alpine" ]]; then
             service v2node start
@@ -202,9 +202,9 @@ start() {
         sleep 2
         check_status
         if [[ $? == 0 ]]; then
-            echo -e "${green}v2node 启动成功，请使用 v2node log 查看运行日志${plain}"
+            echo -e "${green}v2node iniciado exitosamente. Usa v2node log para ver los registros${plain}"
         else
-            echo -e "${red}v2node可能启动失败，请稍后使用 v2node log 查看日志信息${plain}"
+            echo -e "${red}v2node posiblemente fallo al iniciar. Usa v2node log para ver los registros${plain}"
         fi
     fi
 
@@ -222,9 +222,9 @@ stop() {
     sleep 2
     check_status
     if [[ $? == 1 ]]; then
-        echo -e "${green}v2node 停止成功${plain}"
+        echo -e "${green}v2node detenido exitosamente${plain}"
     else
-        echo -e "${red}v2node停止失败，可能是因为停止时间超过了两秒，请稍后查看日志信息${plain}"
+        echo -e "${red}v2node fallo al detenerse, posiblemente porque el tiempo de detencion excedio dos segundos. Revisa los registros mas tarde${plain}"
     fi
 
     if [[ $# == 0 ]]; then
@@ -241,9 +241,9 @@ restart() {
     sleep 2
     check_status
     if [[ $? == 0 ]]; then
-        echo -e "${green}v2node 重启成功，请使用 v2node log 查看运行日志${plain}"
+        echo -e "${green}v2node reiniciado exitosamente. Usa v2node log para ver los registros${plain}"
     else
-        echo -e "${red}v2node可能启动失败，请稍后使用 v2node log 查看日志信息${plain}"
+        echo -e "${red}v2node posiblemente fallo al iniciar. Usa v2node log para ver los registros${plain}"
     fi
     if [[ $# == 0 ]]; then
         before_show_menu
@@ -268,9 +268,9 @@ enable() {
         systemctl enable v2node
     fi
     if [[ $? == 0 ]]; then
-        echo -e "${green}v2node 设置开机自启成功${plain}"
+        echo -e "${green}v2node configurado para inicio automatico exitosamente${plain}"
     else
-        echo -e "${red}v2node 设置开机自启失败${plain}"
+        echo -e "${red}Fallo al configurar v2node para inicio automatico${plain}"
     fi
 
     if [[ $# == 0 ]]; then
@@ -285,9 +285,9 @@ disable() {
         systemctl disable v2node
     fi
     if [[ $? == 0 ]]; then
-        echo -e "${green}v2node 取消开机自启成功${plain}"
+        echo -e "${green}Inicio automatico de v2node deshabilitado exitosamente${plain}"
     else
-        echo -e "${red}v2node 取消开机自启失败${plain}"
+        echo -e "${red}Fallo al deshabilitar el inicio automatico de v2node${plain}"
     fi
 
     if [[ $# == 0 ]]; then
@@ -297,7 +297,7 @@ disable() {
 
 show_log() {
     if [[ x"${release}" == x"alpine" ]]; then
-        echo -e "${red}alpine系统暂不支持日志查看${plain}\n" && exit 1
+        echo -e "${red}El sistema Alpine no soporta visualizacion de registros por el momento${plain}\n" && exit 1
     else
         journalctl -u v2node.service -e --no-pager -f
     fi
@@ -307,18 +307,18 @@ show_log() {
 }
 
 update_shell() {
-    wget -O /usr/bin/v2node -N --no-check-certificate https://raw.githubusercontent.com/wyx2685/v2node/master/script/v2node.sh
+    wget -O /usr/bin/v2node -N --no-check-certificate https://raw.githubusercontent.com/demianrey/v2node_DR/mod/script/v2node.sh
     if [[ $? != 0 ]]; then
         echo ""
-        echo -e "${red}下载脚本失败，请检查本机能否连接 Github${plain}"
+        echo -e "${red}Fallo al descargar el script, verifica que tu maquina pueda conectarse a Github${plain}"
         before_show_menu
     else
         chmod +x /usr/bin/v2node
-        echo -e "${green}升级脚本成功，请重新运行脚本${plain}" && exit 0
+        echo -e "${green}Script actualizado exitosamente, por favor ejecuta el script de nuevo${plain}" && exit 0
     fi
 }
 
-# 0: running, 1: not running, 2: not installed
+# 0: ejecutando, 1: no ejecutando, 2: no instalado
 check_status() {
     if [[ ! -f /usr/local/v2node/v2node ]]; then
         return 2
@@ -362,7 +362,7 @@ check_uninstall() {
     check_status
     if [[ $? != 2 ]]; then
         echo ""
-        echo -e "${red}v2node已安装，请不要重复安装${plain}"
+        echo -e "${red}v2node ya esta instalado, no lo instales de nuevo${plain}"
         if [[ $# == 0 ]]; then
             before_show_menu
         fi
@@ -376,7 +376,7 @@ check_install() {
     check_status
     if [[ $? == 2 ]]; then
         echo ""
-        echo -e "${red}请先安装v2node${plain}"
+        echo -e "${red}Por favor instala v2node primero${plain}"
         if [[ $# == 0 ]]; then
             before_show_menu
         fi
@@ -390,29 +390,29 @@ show_status() {
     check_status
     case $? in
         0)
-            echo -e "v2node状态: ${green}已运行${plain}"
+            echo -e "Estado de v2node: ${green}Ejecutando${plain}"
             show_enable_status
             ;;
         1)
-            echo -e "v2node状态: ${yellow}未运行${plain}"
+            echo -e "Estado de v2node: ${yellow}No ejecutando${plain}"
             show_enable_status
             ;;
         2)
-            echo -e "v2node状态: ${red}未安装${plain}"
+            echo -e "Estado de v2node: ${red}No instalado${plain}"
     esac
 }
 
 show_enable_status() {
     check_enabled
     if [[ $? == 0 ]]; then
-        echo -e "是否开机自启: ${green}是${plain}"
+        echo -e "Inicio automatico: ${green}Si${plain}"
     else
-        echo -e "是否开机自启: ${red}否${plain}"
+        echo -e "Inicio automatico: ${red}No${plain}"
     fi
 }
 
 show_v2node_version() {
-    echo -n "v2node 版本："
+    echo -n "Version de v2node: "
     /usr/local/v2node/v2node version
     echo ""
     if [[ $# == 0 ]]; then
@@ -443,7 +443,7 @@ generate_v2node_config() {
     ]
 }
 EOF
-        echo -e "${green}V2node 配置文件生成完成,正在重新启动服务${plain}"
+        echo -e "${green}Archivo de configuracion de V2node generado, reiniciando servicio${plain}"
         if [[ x"${release}" == x"alpine" ]]; then
             service v2node restart
         else
@@ -453,26 +453,26 @@ EOF
         check_status
         echo -e ""
         if [[ $? == 0 ]]; then
-            echo -e "${green}v2node 重启成功${plain}"
+            echo -e "${green}v2node reiniciado exitosamente${plain}"
         else
-            echo -e "${red}v2node 可能启动失败，请使用 v2node log 查看日志信息${plain}"
+            echo -e "${red}v2node posiblemente fallo al iniciar, usa v2node log para ver los registros${plain}"
         fi
 }
 
 
 generate_config_file() {
-    # 交互式收集参数，提供示例默认值
-    read -rp "面板API地址[格式: https://example.com/]: " api_host
+    # Recopilar parametros interactivamente, proporcionando valores de ejemplo
+    read -rp "Direccion API del panel [formato: https://example.com/]: " api_host
     api_host=${api_host:-https://example.com/}
-    read -rp "节点ID: " node_id
+    read -rp "ID del nodo: " node_id
     node_id=${node_id:-1}
-    read -rp "节点通讯密钥: " api_key
+    read -rp "Clave de comunicacion del nodo: " api_key
 
-    # 生成配置文件（覆盖可能从包中复制的模板）
+    # Generar archivo de configuracion (sobrescribe la plantilla copiada del paquete)
     generate_v2node_config "$api_host" "$node_id" "$api_key"
 }
 
-# 放开防火墙端口
+# Abrir puertos del firewall
 open_ports() {
     systemctl stop firewalld.service 2>/dev/null
     systemctl disable firewalld.service 2>/dev/null
@@ -486,58 +486,58 @@ open_ports() {
     iptables -F 2>/dev/null
     iptables -X 2>/dev/null
     netfilter-persistent save 2>/dev/null
-    echo -e "${green}放开防火墙端口成功！${plain}"
+    echo -e "${green}Puertos del firewall abiertos exitosamente!${plain}"
 }
 
 show_usage() {
-    echo "v2node 管理脚本使用方法: "
+    echo "Uso del script de administracion de v2node: "
     echo "------------------------------------------"
-    echo "v2node              - 显示管理菜单 (功能更多)"
-    echo "v2node start        - 启动 v2node"
-    echo "v2node stop         - 停止 v2node"
-    echo "v2node restart      - 重启 v2node"
-    echo "v2node status       - 查看 v2node 状态"
-    echo "v2node enable       - 设置 v2node 开机自启"
-    echo "v2node disable      - 取消 v2node 开机自启"
-    echo "v2node log          - 查看 v2node 日志"
-    echo "v2node x25519       - 生成 x25519 密钥"
-    echo "v2node generate     - 生成 v2node 配置文件"
-    echo "v2node update       - 更新 v2node"
-    echo "v2node update x.x.x - 安装 v2node 指定版本"
-    echo "v2node install      - 安装 v2node"
-    echo "v2node uninstall    - 卸载 v2node"
-    echo "v2node version      - 查看 v2node 版本"
+    echo "v2node              - Mostrar menu de administracion (mas funciones)"
+    echo "v2node start        - Iniciar v2node"
+    echo "v2node stop         - Detener v2node"
+    echo "v2node restart      - Reiniciar v2node"
+    echo "v2node status       - Ver estado de v2node"
+    echo "v2node enable       - Habilitar inicio automatico de v2node"
+    echo "v2node disable      - Deshabilitar inicio automatico de v2node"
+    echo "v2node log          - Ver registros de v2node"
+    echo "v2node x25519       - Generar clave x25519"
+    echo "v2node generate     - Generar archivo de configuracion de v2node"
+    echo "v2node update       - Actualizar v2node"
+    echo "v2node update x.x.x - Instalar version especifica de v2node"
+    echo "v2node install      - Instalar v2node"
+    echo "v2node uninstall    - Desinstalar v2node"
+    echo "v2node version      - Ver version de v2node"
     echo "------------------------------------------"
 }
 
 show_menu() {
     echo -e "
-  ${green}v2node 后端管理脚本，${plain}${red}不适用于docker${plain}
---- https://github.com/wyx2685/v2node ---
-  ${green}0.${plain} 修改配置
+  ${green}Script de administracion de v2node,${plain}${red} no compatible con docker${plain}
+--- https://github.com/demianrey/v2node_DR ---
+  ${green}0.${plain} Modificar configuracion
 ————————————————
-  ${green}1.${plain} 安装 v2node
-  ${green}2.${plain} 更新 v2node
-  ${green}3.${plain} 卸载 v2node
+  ${green}1.${plain} Instalar v2node
+  ${green}2.${plain} Actualizar v2node
+  ${green}3.${plain} Desinstalar v2node
 ————————————————
-  ${green}4.${plain} 启动 v2node
-  ${green}5.${plain} 停止 v2node
-  ${green}6.${plain} 重启 v2node
-  ${green}7.${plain} 查看 v2node 状态
-  ${green}8.${plain} 查看 v2node 日志
+  ${green}4.${plain} Iniciar v2node
+  ${green}5.${plain} Detener v2node
+  ${green}6.${plain} Reiniciar v2node
+  ${green}7.${plain} Ver estado de v2node
+  ${green}8.${plain} Ver registros de v2node
 ————————————————
-  ${green}9.${plain} 设置 v2node 开机自启
-  ${green}10.${plain} 取消 v2node 开机自启
+  ${green}9.${plain} Habilitar inicio automatico de v2node
+  ${green}10.${plain} Deshabilitar inicio automatico de v2node
 ————————————————
-  ${green}11.${plain} 查看 v2node 版本
-  ${green}12.${plain} 升级 v2node 维护脚本
-  ${green}13.${plain} 生成 v2node 配置文件
-  ${green}14.${plain} 放行 VPS 的所有网络端口
-  ${green}15.${plain} 退出脚本
+  ${green}11.${plain} Ver version de v2node
+  ${green}12.${plain} Actualizar script de mantenimiento
+  ${green}13.${plain} Generar archivo de configuracion de v2node
+  ${green}14.${plain} Abrir todos los puertos de red del VPS
+  ${green}15.${plain} Salir del script
  "
- #后续更新可加入上方字符串中
+ #Actualizaciones futuras pueden agregarse a la cadena anterior
     show_status
-    echo && read -rp "请输入选择 [0-15]: " num
+    echo && read -rp "Por favor ingresa tu seleccion [0-15]: " num
 
     case "${num}" in
         0) config ;;
@@ -556,7 +556,7 @@ show_menu() {
         13) generate_config_file ;;
         14) open_ports ;;
         15) exit ;;
-        *) echo -e "${red}请输入正确的数字 [0-15]${plain}" ;;
+        *) echo -e "${red}Por favor ingresa un numero correcto [0-15]${plain}" ;;
     esac
 }
 

@@ -7,10 +7,10 @@ plain='\033[0m'
 
 cur_dir=$(pwd)
 
-# check root
-[[ $EUID -ne 0 ]] && echo -e "${red}错误：${plain} 必须使用root用户运行此脚本！\n" && exit 1
+# verificar root
+[[ $EUID -ne 0 ]] && echo -e "${red}Error:${plain} Debes ejecutar este script como usuario root!\n" && exit 1
 
-# check os
+# verificar sistema operativo
 if [[ -f /etc/redhat-release ]]; then
     release="centos"
 elif cat /etc/issue | grep -Eqi "alpine"; then
@@ -30,11 +30,11 @@ elif cat /proc/version | grep -Eqi "centos|red hat|redhat|rocky|alma|oracle linu
 elif cat /proc/version | grep -Eqi "arch"; then
     release="arch"
 else
-    echo -e "${red}未检测到系统版本，请联系脚本作者！${plain}\n" && exit 1
+    echo -e "${red}No se detecto la version del sistema, por favor contacta al autor del script!${plain}\n" && exit 1
 fi
 
 ########################
-# 参数解析
+# Analisis de parametros
 ########################
 VERSION_ARG=""
 API_HOST_ARG=""
@@ -51,12 +51,12 @@ parse_args() {
             --api-key)
                 API_KEY_ARG="$2"; shift 2 ;;
             -h|--help)
-                echo "用法: $0 [版本号] [--api-host URL] [--node-id ID] [--api-key KEY]"
+                echo "Uso: $0 [version] [--api-host URL] [--node-id ID] [--api-key KEY]"
                 exit 0 ;;
             --*)
-                echo "未知参数: $1"; exit 1 ;;
+                echo "Parametro desconocido: $1"; exit 1 ;;
             *)
-                # 兼容第一个位置参数作为版本号
+                # Compatible con el primer parametro posicional como numero de version
                 if [[ -z "$VERSION_ARG" ]]; then
                     VERSION_ARG="$1"; shift
                 else
@@ -76,15 +76,15 @@ elif [[ $arch == "s390x" ]]; then
     arch="s390x"
 else
     arch="64"
-    echo -e "${red}检测架构失败，使用默认架构: ${arch}${plain}"
+    echo -e "${red}Fallo al detectar la arquitectura, usando arquitectura por defecto: ${arch}${plain}"
 fi
 
 if [ "$(getconf WORD_BIT)" != '32' ] && [ "$(getconf LONG_BIT)" != '64' ] ; then
-    echo "本软件不支持 32 位系统(x86)，请使用 64 位系统(x86_64)，如果检测有误，请联系作者"
+    echo "Este software no soporta sistemas de 32 bits (x86), por favor usa un sistema de 64 bits (x86_64). Si la deteccion es incorrecta, contacta al autor"
     exit 2
 fi
 
-# os version
+# version del sistema operativo
 if [[ -f /etc/os-release ]]; then
     os_version=$(awk -F'[= ."]' '/VERSION_ID/{print $3}' /etc/os-release)
 fi
@@ -94,38 +94,38 @@ fi
 
 if [[ x"${release}" == x"centos" ]]; then
     if [[ ${os_version} -le 6 ]]; then
-        echo -e "${red}请使用 CentOS 7 或更高版本的系统！${plain}\n" && exit 1
+        echo -e "${red}Por favor usa CentOS 7 o una version superior!${plain}\n" && exit 1
     fi
     if [[ ${os_version} -eq 7 ]]; then
-        echo -e "${red}注意： CentOS 7 无法使用hysteria1/2协议！${plain}\n"
+        echo -e "${red}Nota: CentOS 7 no puede usar el protocolo hysteria1/2!${plain}\n"
     fi
 elif [[ x"${release}" == x"ubuntu" ]]; then
     if [[ ${os_version} -lt 16 ]]; then
-        echo -e "${red}请使用 Ubuntu 16 或更高版本的系统！${plain}\n" && exit 1
+        echo -e "${red}Por favor usa Ubuntu 16 o una version superior!${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"debian" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
-        echo -e "${red}请使用 Debian 8 或更高版本的系统！${plain}\n" && exit 1
+        echo -e "${red}Por favor usa Debian 8 o una version superior!${plain}\n" && exit 1
     fi
 fi
 
 install_base() {
-    # 优化版本：批量检查和安装包，减少系统调用
+    # Version optimizada: verificacion e instalacion por lotes, reduciendo llamadas al sistema
     need_install_apt() {
         local packages=("$@")
         local missing=()
-        
-        # 批量检查已安装的包
+
+        # Verificar paquetes instalados por lotes
         local installed_list=$(dpkg-query -W -f='${Package}\n' 2>/dev/null | sort)
-        
+
         for p in "${packages[@]}"; do
             if ! echo "$installed_list" | grep -q "^${p}$"; then
                 missing+=("$p")
             fi
         done
-        
+
         if [[ ${#missing[@]} -gt 0 ]]; then
-            echo "安装缺失的包: ${missing[*]}"
+            echo "Instalando paquetes faltantes: ${missing[*]}"
             apt-get update -y >/dev/null 2>&1
             DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing[@]}" >/dev/null 2>&1
         fi
@@ -134,18 +134,18 @@ install_base() {
     need_install_yum() {
         local packages=("$@")
         local missing=()
-        
-        # 批量检查已安装的包
+
+        # Verificar paquetes instalados por lotes
         local installed_list=$(rpm -qa --qf '%{NAME}\n' 2>/dev/null | sort)
-        
+
         for p in "${packages[@]}"; do
             if ! echo "$installed_list" | grep -q "^${p}$"; then
                 missing+=("$p")
             fi
         done
-        
+
         if [[ ${#missing[@]} -gt 0 ]]; then
-            echo "安装缺失的包: ${missing[*]}"
+            echo "Instalando paquetes faltantes: ${missing[*]}"
             yum install -y "${missing[@]}" >/dev/null 2>&1
         fi
     }
@@ -153,27 +153,27 @@ install_base() {
     need_install_apk() {
         local packages=("$@")
         local missing=()
-        
-        # 批量检查已安装的包
+
+        # Verificar paquetes instalados por lotes
         local installed_list=$(apk info 2>/dev/null | sort)
-        
+
         for p in "${packages[@]}"; do
             if ! echo "$installed_list" | grep -q "^${p}$"; then
                 missing+=("$p")
             fi
         done
-        
+
         if [[ ${#missing[@]} -gt 0 ]]; then
-            echo "安装缺失的包: ${missing[*]}"
+            echo "Instalando paquetes faltantes: ${missing[*]}"
             apk add --no-cache "${missing[@]}" >/dev/null 2>&1
         fi
     }
 
-    # 一次性安装所有必需的包
+    # Instalar todos los paquetes necesarios de una vez
     if [[ x"${release}" == x"centos" ]]; then
-        # 检查并安装 epel-release
+        # Verificar e instalar epel-release
         if ! rpm -q epel-release >/dev/null 2>&1; then
-            echo "安装 EPEL 源..."
+            echo "Instalando repositorio EPEL..."
             yum install -y epel-release >/dev/null 2>&1
         fi
         need_install_yum wget curl unzip tar cronie socat ca-certificates pv
@@ -188,15 +188,15 @@ install_base() {
         need_install_apt wget curl unzip tar cron socat ca-certificates pv
         update-ca-certificates >/dev/null 2>&1 || true
     elif [[ x"${release}" == x"arch" ]]; then
-        echo "更新包数据库..."
+        echo "Actualizando base de datos de paquetes..."
         pacman -Sy --noconfirm >/dev/null 2>&1
-        # --needed 会跳过已安装的包，非常高效
-        echo "安装必需的包..."
+        # --needed omitira los paquetes ya instalados, muy eficiente
+        echo "Instalando paquetes necesarios..."
         pacman -S --noconfirm --needed wget curl unzip tar cronie socat ca-certificates pv >/dev/null 2>&1
     fi
 }
 
-# 0: running, 1: not running, 2: not installed
+# 0: ejecutando, 1: no ejecutando, 2: no instalado
 check_status() {
     if [[ ! -f /usr/local/v2node/v2node ]]; then
         return 2
@@ -241,7 +241,7 @@ generate_v2node_config() {
     ]
 }
 EOF
-        echo -e "${green}V2node 配置文件生成完成,正在重新启动服务${plain}"
+        echo -e "${green}Archivo de configuracion de V2node generado, reiniciando servicio${plain}"
         if [[ x"${release}" == x"alpine" ]]; then
             service v2node restart
         else
@@ -251,9 +251,9 @@ EOF
         check_status
         echo -e ""
         if [[ $? == 0 ]]; then
-            echo -e "${green}v2node 重启成功${plain}"
+            echo -e "${green}v2node reiniciado exitosamente${plain}"
         else
-            echo -e "${red}v2node 可能启动失败，请使用 v2node log 查看日志信息${plain}"
+            echo -e "${red}v2node posiblemente fallo al iniciar, usa v2node log para ver los registros${plain}"
         fi
 }
 
@@ -269,22 +269,22 @@ install_v2node() {
     if  [[ -z "$version_param" ]] ; then
         last_version=$(curl -Ls "https://api.github.com/repos/wyx2685/v2node/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$last_version" ]]; then
-            echo -e "${red}检测 v2node 版本失败，可能是超出 Github API 限制，请稍后再试，或手动指定 v2node 版本安装${plain}"
+            echo -e "${red}Fallo al detectar la version de v2node, puede ser por exceder el limite de la API de Github. Intenta mas tarde o especifica la version manualmente${plain}"
             exit 1
         fi
-        echo -e "${green}检测到最新版本：${last_version}，开始安装...${plain}"
+        echo -e "${green}Ultima version detectada: ${last_version}, iniciando instalacion...${plain}"
         url="https://github.com/wyx2685/v2node/releases/download/${last_version}/v2node-linux-${arch}.zip"
-        curl -sL "$url" | pv -s 30M -W -N "下载进度" > /usr/local/v2node/v2node-linux.zip
+        curl -sL "$url" | pv -s 30M -W -N "Progreso de descarga" > /usr/local/v2node/v2node-linux.zip
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}下载 v2node 失败，请确保你的服务器能够下载 Github 的文件${plain}"
+            echo -e "${red}Fallo al descargar v2node, asegurate de que tu servidor pueda descargar archivos de Github${plain}"
             exit 1
         fi
     else
     last_version=$version_param
         url="https://github.com/wyx2685/v2node/releases/download/${last_version}/v2node-linux-${arch}.zip"
-        curl -sL "$url" | pv -s 30M -W -N "下载进度" > /usr/local/v2node/v2node-linux.zip
+        curl -sL "$url" | pv -s 30M -W -N "Progreso de descarga" > /usr/local/v2node/v2node-linux.zip
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}下载 v2node $1 失败，请确保此版本存在${plain}"
+            echo -e "${red}Fallo al descargar v2node $1, asegurate de que esta version exista${plain}"
             exit 1
         fi
     fi
@@ -316,7 +316,7 @@ depend() {
 EOF
         chmod +x /etc/init.d/v2node
         rc-update add v2node default
-        echo -e "${green}v2node ${last_version}${plain} 安装完成，已设置开机自启"
+        echo -e "${green}v2node ${last_version}${plain} instalacion completada, configurado para iniciar automaticamente"
     else
         rm /etc/systemd/system/v2node.service -f
         cat <<EOF > /etc/systemd/system/v2node.service
@@ -344,14 +344,14 @@ EOF
         systemctl daemon-reload
         systemctl stop v2node
         systemctl enable v2node
-        echo -e "${green}v2node ${last_version}${plain} 安装完成，已设置开机自启"
+        echo -e "${green}v2node ${last_version}${plain} instalacion completada, configurado para iniciar automaticamente"
     fi
 
     if [[ ! -f /etc/v2node/config.json ]]; then
-        # 如果通过 CLI 传入了完整参数，则直接生成配置并跳过交互
+        # Si se pasaron parametros completos por CLI, generar configuracion directamente y omitir interaccion
         if [[ -n "$API_HOST_ARG" && -n "$NODE_ID_ARG" && -n "$API_KEY_ARG" ]]; then
             generate_v2node_config "$API_HOST_ARG" "$NODE_ID_ARG" "$API_KEY_ARG"
-            echo -e "${green}已根据参数生成 /etc/v2node/config.json${plain}"
+            echo -e "${green}Se genero /etc/v2node/config.json segun los parametros${plain}"
             first_install=false
         else
             cp config.json /etc/v2node/
@@ -367,58 +367,58 @@ EOF
         check_status
         echo -e ""
         if [[ $? == 0 ]]; then
-            echo -e "${green}v2node 重启成功${plain}"
+            echo -e "${green}v2node reiniciado exitosamente${plain}"
         else
-            echo -e "${red}v2node 可能启动失败，请使用 v2node log 查看日志信息${plain}"
+            echo -e "${red}v2node posiblemente fallo al iniciar, usa v2node log para ver los registros${plain}"
         fi
         first_install=false
     fi
 
 
-    curl -o /usr/bin/v2node -Ls https://raw.githubusercontent.com/wyx2685/v2node/main/script/v2node.sh
+    curl -o /usr/bin/v2node -Ls https://raw.githubusercontent.com/demianrey/v2node_DR/mod/script/v2node.sh
     chmod +x /usr/bin/v2node
 
     cd $cur_dir
     rm -f install.sh
     echo "------------------------------------------"
-    echo -e "管理脚本使用方法: "
+    echo -e "Uso del script de administracion: "
     echo "------------------------------------------"
-    echo "v2node              - 显示管理菜单 (功能更多)"
-    echo "v2node start        - 启动 v2node"
-    echo "v2node stop         - 停止 v2node"
-    echo "v2node restart      - 重启 v2node"
-    echo "v2node status       - 查看 v2node 状态"
-    echo "v2node enable       - 设置 v2node 开机自启"
-    echo "v2node disable      - 取消 v2node 开机自启"
-    echo "v2node log          - 查看 v2node 日志"
-    echo "v2node generate     - 生成 v2node 配置文件"
-    echo "v2node update       - 更新 v2node"
-    echo "v2node update x.x.x - 更新 v2node 指定版本"
-    echo "v2node install      - 安装 v2node"
-    echo "v2node uninstall    - 卸载 v2node"
-    echo "v2node version      - 查看 v2node 版本"
+    echo "v2node              - Mostrar menu de administracion (mas funciones)"
+    echo "v2node start        - Iniciar v2node"
+    echo "v2node stop         - Detener v2node"
+    echo "v2node restart      - Reiniciar v2node"
+    echo "v2node status       - Ver estado de v2node"
+    echo "v2node enable       - Habilitar inicio automatico de v2node"
+    echo "v2node disable      - Deshabilitar inicio automatico de v2node"
+    echo "v2node log          - Ver registros de v2node"
+    echo "v2node generate     - Generar archivo de configuracion de v2node"
+    echo "v2node update       - Actualizar v2node"
+    echo "v2node update x.x.x - Actualizar v2node a version especifica"
+    echo "v2node install      - Instalar v2node"
+    echo "v2node uninstall    - Desinstalar v2node"
+    echo "v2node version      - Ver version de v2node"
     echo "------------------------------------------"
     curl -fsS --max-time 10 "https://api.v-50.me/counter" || true
 
     if [[ $first_install == true ]]; then
-        read -rp "检测到你为第一次安装 v2node，是否自动生成 /etc/v2node/config.json？(y/n): " if_generate
+        read -rp "Se detecto que es tu primera instalacion de v2node, deseas generar /etc/v2node/config.json automaticamente? (y/n): " if_generate
         if [[ "$if_generate" =~ ^[Yy]$ ]]; then
-            # 交互式收集参数，提供示例默认值
-            read -rp "面板API地址[格式: https://example.com/]: " api_host
+            # Recopilar parametros interactivamente, proporcionando valores de ejemplo
+            read -rp "Direccion API del panel [formato: https://example.com/]: " api_host
             api_host=${api_host:-https://example.com/}
-            read -rp "节点ID: " node_id
+            read -rp "ID del nodo: " node_id
             node_id=${node_id:-1}
-            read -rp "节点通讯密钥: " api_key
+            read -rp "Clave de comunicacion del nodo: " api_key
 
-            # 生成配置文件（覆盖可能从包中复制的模板）
+            # Generar archivo de configuracion (sobrescribe la plantilla copiada del paquete)
             generate_v2node_config "$api_host" "$node_id" "$api_key"
         else
-            echo "${green}已跳过自动生成配置。如需后续生成，可执行: v2node generate${plain}"
+            echo "${green}Se omitio la generacion automatica de configuracion. Para generar despues, ejecuta: v2node generate${plain}"
         fi
     fi
 }
 
 parse_args "$@"
-echo -e "${green}开始安装${plain}"
+echo -e "${green}Iniciando instalacion${plain}"
 install_base
 install_v2node "$VERSION_ARG"

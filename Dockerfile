@@ -8,7 +8,7 @@ RUN GOEXPERIMENT=jsonv2 go build -v -o v2node
 
 # Release
 FROM  alpine
-# 安装必要的工具包
+# Instalar paquetes necesarios
 RUN  apk --update --no-cache add tzdata ca-certificates \
     && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 RUN mkdir /etc/v2node/
