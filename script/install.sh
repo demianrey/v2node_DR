@@ -267,13 +267,13 @@ install_v2node() {
     cd /usr/local/v2node/
 
     if  [[ -z "$version_param" ]] ; then
-        last_version=$(curl -Ls "https://api.github.com/repos/wyx2685/v2node/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        last_version=$(curl -Ls "https://api.github.com/repos/demianrey/v2node_DR/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$last_version" ]]; then
             echo -e "${red}Fallo al detectar la version de v2node, puede ser por exceder el limite de la API de Github. Intenta mas tarde o especifica la version manualmente${plain}"
             exit 1
         fi
         echo -e "${green}Ultima version detectada: ${last_version}, iniciando instalacion...${plain}"
-        url="https://github.com/wyx2685/v2node/releases/download/${last_version}/v2node-linux-${arch}.zip"
+        url="https://github.com/demianrey/v2node_DR/releases/download/${last_version}/v2node-linux-${arch}.zip"
         curl -sL "$url" | pv -s 30M -W -N "Progreso de descarga" > /usr/local/v2node/v2node-linux.zip
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Fallo al descargar v2node, asegurate de que tu servidor pueda descargar archivos de Github${plain}"
@@ -281,7 +281,7 @@ install_v2node() {
         fi
     else
     last_version=$version_param
-        url="https://github.com/wyx2685/v2node/releases/download/${last_version}/v2node-linux-${arch}.zip"
+        url="https://github.com/demianrey/v2node_DR/releases/download/${last_version}/v2node-linux-${arch}.zip"
         curl -sL "$url" | pv -s 30M -W -N "Progreso de descarga" > /usr/local/v2node/v2node-linux.zip
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Fallo al descargar v2node $1, asegurate de que esta version exista${plain}"
