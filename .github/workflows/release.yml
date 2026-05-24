@@ -2,21 +2,6 @@ name: Build and Release
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - mod
-    paths:
-      - "**/*.go"
-      - "go.mod"
-      - "go.sum"
-      - ".github/workflows/release.yml"
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - "**/*.go"
-      - "go.mod"
-      - "go.sum"
-      - ".github/workflows/release.yml"
   release:
     types: [published]
 
