@@ -24,14 +24,25 @@ type NetworkSettingsProxyProtocol struct {
 	AcceptProxyProtocol bool `json:"acceptProxyProtocol"`
 }
 
-// applyXHTTPServerDefaults inyecta defaults de servidor en la config xhttp cuando el panel
-// no los envía. Si el panel usa el campo "extra", los defaults se inyectan ahí también,
-// porque Build() de xray-core reemplaza el config outer con el extra y solo preserva
-// host/path/mode — perdiendo scMaxEachPostBytes, scMaxBufferedPosts y scStreamUpServerSecs.
+// applyXHTTPServerDefaults corrige la config xhttp del servidor cuando viene de v2board:
+//
+//  1. Limpia el campo "host" — el panel lo envía con el dominio CDN (ej: CloudFront) pero
+//     xray-core lo usa para validar el Host header entrante (hub.go:96). Cuando CloudFront
+//     reescribe el Host header, la validación falla y devuelve 404. En el servidor debe
+//     estar vacío para aceptar cualquier host (igual que 3x-ui).
+//
+//  2. Inyecta defaults de rendimiento (scMaxEachPostBytes, scMaxBufferedPosts,
+//     scStreamUpServerSecs) que el panel no envía. Si el panel usa "extra", los inyecta
+//     ahí porque Build() de xray-core reemplaza el outer config con el extra conservando
+//     solo host/path/mode.
 func applyXHTTPServerDefaults(s *coreConf.SplitHTTPConfig) {
 	if s == nil {
 		return
 	}
+	// El host en el servidor causa validación estricta del Host header entrante,
+	// lo que rompe CDNs que reescriben el Host (ej: CloudFront AllViewerExceptHostHeader).
+	s.Host = ""
+
 	defaults := map[string]interface{}{
 		"scMaxEachPostBytes":   "1000000",
 		"scMaxBufferedPosts":   30,
