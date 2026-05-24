@@ -198,6 +198,11 @@ func buildInbound(nodeInfo *panel.NodeInfo, tag string) (*core.InboundHandlerCon
 			if nodeInfo.Type == "hysteria2" || nodeInfo.Type == "tuic" {
 				alpnList := &coreConf.StringList{"h3"}
 				in.StreamSetting.TLSSettings.ALPN = alpnList
+			} else if nodeInfo.Common.Network == "xhttp" || nodeInfo.Common.Network == "splithttp" {
+				// xhttp necesita H2 para streaming eficiente (igual que 3x-ui: ["h2","http/1.1"])
+				// Sin esto CloudFront negocia H1.1 con el origen, lo que limita el throughput
+				alpnList := &coreConf.StringList{"h2", "http/1.1"}
+				in.StreamSetting.TLSSettings.ALPN = alpnList
 			}
 		}
 	case panel.Reality:
