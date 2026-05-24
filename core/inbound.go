@@ -24,6 +24,53 @@ type NetworkSettingsProxyProtocol struct {
 	AcceptProxyProtocol bool `json:"acceptProxyProtocol"`
 }
 
+// applyXHTTPServerDefaults inyecta defaults de servidor en la config xhttp cuando el panel
+// no los envía. Si el panel usa el campo "extra", los defaults se inyectan ahí también,
+// porque Build() de xray-core reemplaza el config outer con el extra y solo preserva
+// host/path/mode — perdiendo scMaxEachPostBytes, scMaxBufferedPosts y scStreamUpServerSecs.
+func applyXHTTPServerDefaults(s *coreConf.SplitHTTPConfig) {
+	if s == nil {
+		return
+	}
+	defaults := map[string]interface{}{
+		"scMaxEachPostBytes":   "1000000",
+		"scMaxBufferedPosts":   30,
+		"scStreamUpServerSecs": "20-80",
+	}
+	if s.Extra != nil {
+		// Build() usará extra como base — inyectar defaults ahí si no están presentes
+		var extraMap map[string]json.RawMessage
+		if err := json.Unmarshal(s.Extra, &extraMap); err == nil {
+			changed := false
+			for k, v := range defaults {
+				if _, ok := extraMap[k]; !ok {
+					if b, err := json.Marshal(v); err == nil {
+						extraMap[k] = b
+						changed = true
+					}
+				}
+			}
+			if changed {
+				if b, err := json.Marshal(extraMap); err == nil {
+					s.Extra = b
+				}
+			}
+		}
+	} else {
+		// Sin extra: aplicar defaults directamente en el outer config
+		zero := coreConf.Int32Range{}
+		if s.ScMaxEachPostBytes == zero {
+			s.ScMaxEachPostBytes = coreConf.Int32Range{From: 1000000, To: 1000000}
+		}
+		if s.ScMaxBufferedPosts == 0 {
+			s.ScMaxBufferedPosts = 30
+		}
+		if s.ScStreamUpServerSecs == zero {
+			s.ScStreamUpServerSecs = coreConf.Int32Range{From: 20, To: 80}
+		}
+	}
+}
+
 func (v *V2Core) removeInbound(tag string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -239,6 +286,7 @@ func buildVLess(nodeInfo *panel.NodeInfo, inbound *coreConf.InboundDetourConfig)
 		if err != nil {
 			return fmt.Errorf("unmarshal xhttp settings error: %s", err)
 		}
+		applyXHTTPServerDefaults(inbound.StreamSetting.SplitHTTPSettings)
 	default:
 		return errors.New("the network type is not vail")
 	}
@@ -286,6 +334,7 @@ func buildVMess(nodeInfo *panel.NodeInfo, inbound *coreConf.InboundDetourConfig)
 		if err != nil {
 			return fmt.Errorf("unmarshal xhttp settings error: %s", err)
 		}
+		applyXHTTPServerDefaults(inbound.StreamSetting.SplitHTTPSettings)
 	default:
 		return errors.New("the network type is not vail")
 	}
@@ -508,6 +557,7 @@ func buildAnyTLS(nodeInfo *panel.NodeInfo, inbound *coreConf.InboundDetourConfig
 			if err != nil {
 				return fmt.Errorf("unmarshal xhttp settings error: %s", err)
 			}
+			applyXHTTPServerDefaults(inbound.StreamSetting.SplitHTTPSettings)
 		default:
 			return errors.New("the network type is not vail")
 		}
