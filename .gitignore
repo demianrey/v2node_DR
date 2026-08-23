@@ -1,3 +1,30 @@
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+.fseventsd
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+.apdisk
+
+# Editor
+.vscode/launch.json
+.idea/
+
+# Build output
+output/
+
+# Scripts locales
+new.sh
+quick_update.sh
+
+# Example / dev
 example/config.yml
 example/main
 example/XrayR
@@ -5,14 +32,10 @@ example/XrayR*
 example/mytest
 example/access.logo
 example/error.log
+example/.lego
+example/cert
+
+# Misc
 api/chooseparser.go.bak
 app/Inboundbuilder/.lego/
 app/legocmd/.lego/
-.vscode/launch.json
-example/.lego
-example/cert
-./vscode
-output/*
-.idea/*
-new.sh
-quick_update.sh

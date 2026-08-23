@@ -1,6 +1,11 @@
 # Normalizar line endings a LF en el repositorio
 * text=auto eol=lf
 
+# macOS AppleDouble — tratar como binario y excluir de exports
+._* binary export-ignore
+.DS_Store export-ignore
+.AppleDouble export-ignore
+
 # Binarios - sin conversión
 *.png binary
 *.jpg binary
@@ -9,7 +14,13 @@
 *.ico binary
 *.zip binary
 *.tar.gz binary
+*.tar.xz binary
 *.woff binary
 *.woff2 binary
 *.ttf binary
 *.eot binary
+*.dat binary
+
+# Go binarios compilados
+v2node binary
+v2node.exe binary
